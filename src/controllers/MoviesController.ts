@@ -1,9 +1,30 @@
 import {Request, Response} from 'express';
 import Movie from '../models/MoviesSchema';
+import {createClient} from 'redis';
+
+const client = createClient({
+  url: 'redis://127.0.0.1:6379',
+});
+
+client.on('error', (err) => console.error('Redis Client Error', err));
+client
+  .connect()
+  .then(() => console.log('redis connected'))
+  .catch((e) => console.log(e));
 
 export const getMovies = async (req: Request, res: Response): Promise<void> => {
+  const cacheKey = 'movies_all';
+
   try {
+    const cachedData = await client.get(cacheKey);
+    if (cachedData) {
+      console.log('====>', cachedData);
+      res.json(JSON.parse(cachedData));
+      return;
+    }
+
     const movies = await Movie.find();
+    await client.set(cacheKey, JSON.stringify(movies), {EX: 3600});
     res.json(movies);
   } catch (err) {
     res.status(500).json({error: 'Server Error'});
