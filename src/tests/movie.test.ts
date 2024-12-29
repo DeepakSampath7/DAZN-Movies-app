@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
-import Movie from '../models/MoviesSchema';
-import redisClient from '../config/Redis';
+import Movie from '@models/MoviesSchema';
+import redisClient from '@config/Redis';
 
 const app = express();
 

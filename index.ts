@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import express, {Application} from 'express';
+import express, { Application } from 'express';
 import userRoutes from '@routes/UserRoutes';
 import moviesRoutes from '@routes/MoviesRoutes';
-import {errorHandler} from '@middleware/ErrorMiddileware';
+import { errorHandler } from '@middleware/ErrorMiddileware';
 import connectDB from '@config/mongoDB';
 import applySecurity from '@config/helmet';
 import cors from '@config/cors';
@@ -23,5 +23,5 @@ app.use('/api/movies', moviesRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
+    console.log(`Server running on http://localhost:${PORT}`)
 );

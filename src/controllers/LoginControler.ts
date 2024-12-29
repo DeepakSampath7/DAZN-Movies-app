@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/UsersSchema';
-import { generateToken } from '../config/jwt';
+import User from '@models/UsersSchema';
+import { generateToken } from '@config/jwt';
 
 export const register = async (
     req: Request,

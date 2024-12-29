@@ -1,22 +1,24 @@
 {
-  "compilerOptions": {
-    "types": ["node", "express", "jest"],
-    "target": "ES6",
-    "module": "CommonJS",
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "esModuleInterop": true,
-    "strict": true,
-    "moduleResolution": "Node",
-    "typeRoots": ["./node_modules/@types"],
-    "baseUrl": "./src",
-    "paths": {
-      "@src/*": ["*"],
-      "@routes/*": ["routes/*"],
-      "@config/*": ["config/*"],
-      "@middleware/*": ["middleware/*"]
-    }
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["node_modules"]
+    "compilerOptions": {
+        "types": ["node", "express", "jest"],
+        "target": "ES6",
+        "module": "CommonJS",
+        "rootDir": "./",
+        "outDir": "./dist",
+        "esModuleInterop": true,
+        "strict": true,
+        "moduleResolution": "Node",
+        "typeRoots": ["./node_modules/@types"],
+        "baseUrl": "./src",
+        "paths": {
+            "@src/*": ["*"],
+            "@routes/*": ["routes/*"],
+            "@config/*": ["config/*"],
+            "@middleware/*": ["middleware/*"],
+            "@models/*": ["models/*"],
+            "@controllers/*": ["controllers/*"]
+        }
+    },
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "index.ts"],
+    "exclude": ["node_modules"]
 }

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import Movie from '../models/MoviesSchema';
-import redisClient from '../config/Redis';
+import Movie from '@models/MoviesSchema';
+import redisClient from '@config/Redis';
 
 Movie.collection.createIndex({ title: 1, genre: 1 });
 
