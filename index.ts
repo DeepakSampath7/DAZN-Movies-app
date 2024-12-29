@@ -1,17 +1,18 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import express, {Application} from 'express';
+import userRoutes from '@routes/UserRoutes';
+import moviesRoutes from '@routes/MoviesRoutes';
+import {errorHandler} from '@middleware/ErrorMiddileware';
+import connectDB from '@config/mongoDB';
+import applySecurity from '@config/helmet';
+import cors from '@config/cors';
 
-import express from 'express';
-import userRoutes from './src/routes/UserRoutes';
-import moviesRoutes from './src/routes/MoviesRoutes';
-import {errorHandler} from './src/middleware/ErrorMiddileware';
-import connectDB from './src/config/mongoDB';
-import applySecurity from './src/config/helmet';
-
-const app = express();
-const PORT = process.env.PORT || 5000;
+const app: Application = express();
+const PORT: number = parseInt(process.env.PORT as string, 10) || 5000;
 
 app.use(express.json());
+app.use(cors);
 
 connectDB();
 applySecurity(app);

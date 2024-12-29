@@ -1,4 +1,4 @@
-import {Request, Response, NextFunction} from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 export const errorHandler = (
   err: any,
@@ -7,5 +7,5 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   console.error(err.stack);
-  res.status(500).json({error: 'Internal Server Error'});
+  res.status(500).json({ error: 'Internal Server Error' });
 };

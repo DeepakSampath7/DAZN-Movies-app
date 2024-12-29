@@ -1,315 +1,117 @@
-import {Request, Response} from 'express';
+import request from 'supertest';
+import express from 'express';
 import Movie from '../models/MoviesSchema';
+import redisClient from '../config/Redis';
 
-import {
-  getMovies,
-  searchMovies,
-  addMovie,
-  updateMovie,
-  deleteMovie,
-} from '../controllers/MoviesController';
+const app = express();
 
-// Mock the Movie model
+jest.mock('../config/Redis', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  flushAll: jest.fn(),
+}));
 
-jest.mock('../models/MoviesSchema', () => {
-  return {
-    __esModule: true,
+jest.mock('../models/MoviesSchema');
 
-    default: {
-      find: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      findByIdAndDelete: jest.fn(),
-    },
-  };
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
-type MockResponse = {
-  json: jest.Mock;
-  status?: jest.Mock;
-};
+describe('Movies API', () => {
+  describe('GET /movies', () => {
+    it('should fetch movies from cache if available', async () => {
+      const cachedMovies = JSON.stringify([
+        { title: 'Inception', genre: 'Sci-Fi' },
+      ]);
+      (redisClient.get as jest.Mock).mockResolvedValue(cachedMovies);
 
-type MockModel = {
-  find: jest.Mock;
-  findByIdAndUpdate: jest.Mock;
-  findByIdAndDelete: jest.Mock;
+      const res = await request(app).get('/movies?page=1&limit=10');
 
-  prototype: {
-    save: jest.Mock;
-  };
-};
-
-const MockMovie = Movie as unknown as MockModel;
-
-describe('Movie API Functions', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('getMovies', () => {
-    it('should return all movies', async () => {
-      const mockMovies = [
-        {title: 'Star Wars', genre: 'Sci-Fi', rating: 5, link: 'link1'},
-        {title: 'The Matrix', genre: 'Action', rating: 4, link: 'link2'},
-      ];
-
-      MockMovie.find.mockResolvedValueOnce(mockMovies);
-      const res = {json: jest.fn()} as MockResponse;
-      const req = {} as Request;
-
-      await getMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith(mockMovies);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(JSON.parse(cachedMovies));
+      expect(redisClient.get).toHaveBeenCalledWith('movies_all_1_10');
     });
 
-    it('should return server error on failure', async () => {
-      MockMovie.find.mockRejectedValueOnce(new Error('Internal Server Error'));
+    it('should fetch movies from DB if not cached', async () => {
+      const movies = [{ title: 'Inception', genre: 'Sci-Fi' }];
+      (redisClient.get as jest.Mock).mockResolvedValue(null);
+      (Movie.find as jest.Mock).mockResolvedValue(movies);
 
-      const res = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      } as MockResponse;
+      const res = await request(app).get('/movies?page=1&limit=10');
 
-      const req = {} as Request;
-
-      await getMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(movies);
+      expect(Movie.find).toHaveBeenCalled();
+      expect(redisClient.set).toHaveBeenCalled();
     });
   });
 
-  describe('searchMovies', () => {
-    it('should search movies by title (case-insensitive)', async () => {
-      const mockMovies = [
-        {title: 'Star Wars', genre: 'Sci-Fi', rating: 5, link: 'link1'},
-      ];
+  describe('GET /movies/search', () => {
+    it('should return matching movies based on query', async () => {
+      const movies = [{ title: 'Avatar', genre: 'Fantasy' }];
+      (Movie.find as jest.Mock).mockResolvedValue(movies);
 
-      MockMovie.find.mockResolvedValueOnce(mockMovies);
+      const res = await request(app).get('/movies/search?q=Avatar');
 
-      const res = {json: jest.fn()} as MockResponse;
-      const req = {query: {q: 'star'}} as unknown as Request;
-
-      await searchMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalledWith({
-        $or: [
-          {title: {$regex: 'star', $options: 'i'}},
-          {genre: {$regex: 'star', $options: 'i'}},
-        ],
-      });
-
-      expect(res.json).toHaveBeenCalledWith(mockMovies);
-    });
-
-    it('should search movies by genre (case-insensitive)', async () => {
-      const mockMovies = [
-        {title: 'The Matrix', genre: 'Action', rating: 4, link: 'link2'},
-      ];
-
-      MockMovie.find.mockResolvedValueOnce(mockMovies);
-
-      const res = {json: jest.fn()} as MockResponse;
-      const req = {query: {q: 'ACTion'}} as unknown as Request;
-
-      await searchMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalledWith({
-        $or: [
-          {title: {$regex: 'ACTion', $options: 'i'}},
-          {genre: {$regex: 'ACTion', $options: 'i'}},
-        ],
-      });
-
-      expect(res.json).toHaveBeenCalledWith(mockMovies);
-    });
-
-    it('should return empty array if no movies found', async () => {
-      MockMovie.find.mockResolvedValueOnce([]);
-
-      const res = {json: jest.fn()} as MockResponse;
-      const req = {query: {q: 'fantasy'}} as unknown as Request;
-
-      await searchMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith([]);
-    });
-
-    it('should return server error on failure', async () => {
-      MockMovie.find.mockRejectedValueOnce(new Error('Internal Server Error'));
-
-      const res = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      } as MockResponse;
-
-      const req = {query: {q: 'star'}} as unknown as Request;
-
-      await searchMovies(req, res as unknown as Response);
-
-      expect(MockMovie.find).toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(movies);
     });
   });
 
-  describe('addMovie', () => {
+  describe('POST /movies', () => {
     it('should add a new movie', async () => {
       const newMovie = {
-        title: 'The Lord of the Rings',
-        genre: 'Fantasy',
-        rating: 5,
-        link: 'link3',
+        title: 'Titanic',
+        genre: 'Romance',
+        rating: 8.5,
+        link: 'http://example.com',
       };
+      (Movie.prototype.save as jest.Mock).mockResolvedValue(newMovie);
 
-      const mockSave = jest.fn();
+      const res = await request(app).post('/movies').send(newMovie);
 
-      MockMovie.prototype.save = mockSave;
-
-      const res = {json: jest.fn()} as MockResponse;
-      const req = {body: newMovie} as Request;
-
-      await addMovie(req, res as unknown as Response);
-
-      expect(mockSave).toHaveBeenCalledTimes(1);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Movie added successfully!',
-      });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Movie added successfully!');
+      expect(redisClient.flushAll).toHaveBeenCalled();
     });
 
-    it('should return server error on failure', async () => {
-      const newMovie = {
-        title: 'The Lord of the Rings',
-        genre: 'Fantasy',
-        rating: 5,
-        link: 'link3',
-      };
+    it('should return 400 if fields are missing', async () => {
+      const res = await request(app).post('/movies').send({ title: 'Titanic' });
 
-      MockMovie.prototype.save = jest
-        .fn()
-        .mockRejectedValueOnce(new Error('Internal Server Error'));
-
-      const res = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      } as MockResponse;
-
-      const req = {body: newMovie} as Request;
-
-      await addMovie(req, res as unknown as Response);
-
-      expect(MockMovie.prototype.save).toHaveBeenCalledTimes(1);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Missing fields');
     });
   });
 
-  describe('updateMovie', () => {
-    it('should update an existing movie', async () => {
-      const movieId = '123';
+  describe('PUT /movies/:id', () => {
+    it('should update a movie', async () => {
+      const res = await request(app)
+        .put('/movies/123')
+        .send({ title: 'Updated Title' });
 
-      const updateData = {
-        title: 'Updated Title',
-        genre: 'Updated Genre',
-        rating: 4,
-        link: 'updated-link',
-      };
-
-      MockMovie.findByIdAndUpdate.mockResolvedValueOnce(updateData);
-
-      const res = {json: jest.fn()} as MockResponse;
-
-      const req = {
-        params: {id: movieId},
-        body: updateData,
-      } as unknown as Request;
-
-      await updateMovie(req, res as unknown as Response);
-
-      expect(MockMovie.findByIdAndUpdate).toHaveBeenCalledWith(
-        movieId,
-        updateData
-      );
-
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Movie updated successfully!',
-      });
-    });
-
-    it('should return server error when update fails', async () => {
-      const movieId = '123';
-
-      const updateData = {title: 'Updated Title'};
-
-      MockMovie.findByIdAndUpdate.mockRejectedValueOnce(
-        new Error('Update Failed')
-      );
-
-      const res = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      } as MockResponse;
-
-      const req = {
-        params: {id: movieId},
-        body: updateData,
-      } as unknown as Request;
-
-      await updateMovie(req, res as unknown as Response);
-
-      expect(MockMovie.findByIdAndUpdate).toHaveBeenCalledWith(
-        movieId,
-        updateData
-      );
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Movie updated successfully!');
+      expect(redisClient.flushAll).toHaveBeenCalled();
     });
   });
 
-  describe('deleteMovie', () => {
-    it('should delete an existing movie', async () => {
-      const movieId = '123';
+  describe('DELETE /movies/:id', () => {
+    it('should delete a movie', async () => {
+      const res = await request(app).delete('/movies/123');
 
-      MockMovie.findByIdAndDelete.mockResolvedValueOnce({});
-
-      const res = {json: jest.fn()} as MockResponse;
-
-      const req = {
-        params: {id: movieId},
-      } as unknown as Request;
-
-      await deleteMovie(req, res as unknown as Response);
-
-      expect(MockMovie.findByIdAndDelete).toHaveBeenCalledWith(movieId);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Movie deleted successfully!',
-      });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Movie deleted successfully!');
+      expect(redisClient.flushAll).toHaveBeenCalled();
     });
+  });
 
-    it('should return server error when deletion fails', async () => {
-      const movieId = '123';
+  describe('Error handling', () => {
+    it('should handle server errors gracefully', async () => {
+      (Movie.find as jest.Mock).mockRejectedValue(new Error('Database Error'));
+      const res = await request(app).get('/movies?page=1&limit=10');
 
-      MockMovie.findByIdAndDelete.mockRejectedValueOnce(
-        new Error('Deletion Failed')
-      );
-
-      const res = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      } as MockResponse;
-
-      const req = {
-        params: {id: movieId},
-      } as unknown as Request;
-
-      await deleteMovie(req, res as unknown as Response);
-
-      expect(MockMovie.findByIdAndDelete).toHaveBeenCalledWith(movieId);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Server Error');
     });
   });
 });

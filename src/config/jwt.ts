@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import {Types} from 'mongoose';
+import { Types } from 'mongoose';
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 

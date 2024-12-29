@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["node", "express", "express-session", "jest"],
+    "types": ["node", "express", "jest"],
     "target": "ES6",
     "module": "CommonJS",
     "rootDir": "./src",
@@ -8,7 +8,15 @@
     "esModuleInterop": true,
     "strict": true,
     "moduleResolution": "Node",
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types"],
+    "baseUrl": "./src",
+    "paths": {
+      "@src/*": ["*"],
+      "@routes/*": ["routes/*"],
+      "@config/*": ["config/*"],
+      "@middleware/*": ["middleware/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/types/*.d.ts", "src/session/sessionStore.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules"]
 }

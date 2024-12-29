@@ -1,23 +1,23 @@
-import {Request, Response, NextFunction} from 'express';
+import { Request, Response, NextFunction } from 'express';
 import User from '../models/UsersSchema';
-import {generateToken} from '../config/jwt';
+import { generateToken } from '../config/jwt';
 
 export const register = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const {username, email, password, role = 'user'} = req.body;
+  const { username, email, password, role = 'user' } = req.body;
 
   if (!username || !email || !password) {
-    res.status(400).json({message: 'All fields are required'});
+    res.status(400).json({ message: 'All fields are required' });
     return;
   }
 
   try {
-    const existingUser = await User.findOne({$or: [{email}, {username}]});
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      res.status(400).json({message: 'User already exists'});
+      res.status(400).json({ message: 'User already exists' });
       return;
     }
 
@@ -50,23 +50,23 @@ export const login = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const {email, password} = req.body;
+  const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(400).json({message: 'Email and password are required'});
+    res.status(400).json({ message: 'Email and password are required' });
     return;
   }
 
   try {
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
     if (!user) {
-      res.status(401).json({message: 'Invalid credentials'});
+      res.status(401).json({ message: 'Invalid credentials' });
       return;
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      res.status(401).json({message: 'Invalid credentials'});
+      res.status(401).json({ message: 'Invalid credentials' });
       return;
     }
 
