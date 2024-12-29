@@ -1,33 +1,35 @@
 import {Request, Response} from 'express';
 import Movie from '../models/MoviesSchema';
-import {createClient} from 'redis';
+import redisClient from '../config/Redis';
 
-const client = createClient({
-  url: 'redis://127.0.0.1:6379',
-});
-
-client.on('error', (err) => console.error('Redis Client Error', err));
-client
-  .connect()
-  .then(() => console.log('redis connected'))
-  .catch((e) => console.log(e));
+Movie.collection.createIndex({title: 1, genre: 1});
 
 export const getMovies = async (req: Request, res: Response): Promise<void> => {
   const cacheKey = 'movies_all';
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
 
   try {
-    const cachedData = await client.get(cacheKey);
+    const cachedData = await redisClient.get(`${cacheKey}_${page}_${limit}`);
     if (cachedData) {
-      console.log('====>', cachedData);
       res.json(JSON.parse(cachedData));
       return;
     }
 
-    const movies = await Movie.find();
-    await client.set(cacheKey, JSON.stringify(movies), {EX: 3600});
+    const movies = await Movie.find().skip(skip).limit(limit);
+    await redisClient.set(
+      `${cacheKey}_${page}_${limit}`,
+      JSON.stringify(movies),
+      {
+        EX: 3600,
+      }
+    );
     res.json(movies);
+    return;
   } catch (err) {
     res.status(500).json({error: 'Server Error'});
+    return;
   }
 };
 
@@ -42,21 +44,31 @@ export const searchMovies = async (
         {title: {$regex: query, $options: 'i'}},
         {genre: {$regex: query, $options: 'i'}},
       ],
-    });
+    }).limit(10);
     res.json(movies);
+    return;
   } catch (err) {
     res.status(500).json({error: 'Server Error'});
+    return;
   }
 };
 
 export const addMovie = async (req: Request, res: Response): Promise<void> => {
   const {title, genre, rating, link} = req.body;
   try {
+    if (!title || !genre || !rating || !link) {
+      res.status(400).json({error: 'Missing fields'});
+      return;
+    }
+
     const newMovie = new Movie({title, genre, rating, link});
     await newMovie.save();
+    await redisClient.flushAll();
     res.json({message: 'Movie added successfully!'});
+    return;
   } catch (err) {
     res.status(500).json({error: 'Server Error'});
+    return;
   }
 };
 
@@ -67,6 +79,7 @@ export const updateMovie = async (
   const {id} = req.params;
   try {
     await Movie.findByIdAndUpdate(id, req.body);
+    await redisClient.flushAll();
     res.json({message: 'Movie updated successfully!'});
   } catch (err) {
     res.status(500).json({error: 'Server Error'});
@@ -80,6 +93,7 @@ export const deleteMovie = async (
   const {id} = req.params;
   try {
     await Movie.findByIdAndDelete(id);
+    await redisClient.flushAll();
     res.json({message: 'Movie deleted successfully!'});
   } catch (err) {
     res.status(500).json({error: 'Server Error'});

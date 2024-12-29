@@ -7,7 +7,7 @@ const redisClient: RedisClientType = createClient({
 const connectRedis = async () => {
   try {
     await redisClient.connect();
-    console.log('Connected to Redis successfully');
+    console.log('Redis connected');
   } catch (err) {
     console.error('Redis connection error:', err);
   }

@@ -17,27 +17,20 @@ jest.mock('../models/MoviesSchema', () => {
 
     default: {
       find: jest.fn(),
-
       findByIdAndUpdate: jest.fn(),
-
       findByIdAndDelete: jest.fn(),
     },
   };
 });
 
-// Define types
-
 type MockResponse = {
   json: jest.Mock;
-
   status?: jest.Mock;
 };
 
 type MockModel = {
   find: jest.Mock;
-
   findByIdAndUpdate: jest.Mock;
-
   findByIdAndDelete: jest.Mock;
 
   prototype: {
@@ -56,20 +49,16 @@ describe('Movie API Functions', () => {
     it('should return all movies', async () => {
       const mockMovies = [
         {title: 'Star Wars', genre: 'Sci-Fi', rating: 5, link: 'link1'},
-
         {title: 'The Matrix', genre: 'Action', rating: 4, link: 'link2'},
       ];
 
       MockMovie.find.mockResolvedValueOnce(mockMovies);
-
       const res = {json: jest.fn()} as MockResponse;
-
       const req = {} as Request;
 
       await getMovies(req, res as unknown as Response);
 
       expect(MockMovie.find).toHaveBeenCalled();
-
       expect(res.json).toHaveBeenCalledWith(mockMovies);
     });
 
@@ -78,7 +67,6 @@ describe('Movie API Functions', () => {
 
       const res = {
         json: jest.fn(),
-
         status: jest.fn().mockReturnThis(),
       } as MockResponse;
 
@@ -87,9 +75,7 @@ describe('Movie API Functions', () => {
       await getMovies(req, res as unknown as Response);
 
       expect(MockMovie.find).toHaveBeenCalled();
-
       expect(res.status).toHaveBeenCalledWith(500);
-
       expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
     });
   });
@@ -103,7 +89,6 @@ describe('Movie API Functions', () => {
       MockMovie.find.mockResolvedValueOnce(mockMovies);
 
       const res = {json: jest.fn()} as MockResponse;
-
       const req = {query: {q: 'star'}} as unknown as Request;
 
       await searchMovies(req, res as unknown as Response);
@@ -111,7 +96,6 @@ describe('Movie API Functions', () => {
       expect(MockMovie.find).toHaveBeenCalledWith({
         $or: [
           {title: {$regex: 'star', $options: 'i'}},
-
           {genre: {$regex: 'star', $options: 'i'}},
         ],
       });
@@ -127,7 +111,6 @@ describe('Movie API Functions', () => {
       MockMovie.find.mockResolvedValueOnce(mockMovies);
 
       const res = {json: jest.fn()} as MockResponse;
-
       const req = {query: {q: 'ACTion'}} as unknown as Request;
 
       await searchMovies(req, res as unknown as Response);
@@ -135,7 +118,6 @@ describe('Movie API Functions', () => {
       expect(MockMovie.find).toHaveBeenCalledWith({
         $or: [
           {title: {$regex: 'ACTion', $options: 'i'}},
-
           {genre: {$regex: 'ACTion', $options: 'i'}},
         ],
       });
@@ -147,13 +129,11 @@ describe('Movie API Functions', () => {
       MockMovie.find.mockResolvedValueOnce([]);
 
       const res = {json: jest.fn()} as MockResponse;
-
       const req = {query: {q: 'fantasy'}} as unknown as Request;
 
       await searchMovies(req, res as unknown as Response);
 
       expect(MockMovie.find).toHaveBeenCalled();
-
       expect(res.json).toHaveBeenCalledWith([]);
     });
 
@@ -162,7 +142,6 @@ describe('Movie API Functions', () => {
 
       const res = {
         json: jest.fn(),
-
         status: jest.fn().mockReturnThis(),
       } as MockResponse;
 
@@ -171,9 +150,7 @@ describe('Movie API Functions', () => {
       await searchMovies(req, res as unknown as Response);
 
       expect(MockMovie.find).toHaveBeenCalled();
-
       expect(res.status).toHaveBeenCalledWith(500);
-
       expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
     });
   });
@@ -182,11 +159,8 @@ describe('Movie API Functions', () => {
     it('should add a new movie', async () => {
       const newMovie = {
         title: 'The Lord of the Rings',
-
         genre: 'Fantasy',
-
         rating: 5,
-
         link: 'link3',
       };
 
@@ -195,13 +169,11 @@ describe('Movie API Functions', () => {
       MockMovie.prototype.save = mockSave;
 
       const res = {json: jest.fn()} as MockResponse;
-
       const req = {body: newMovie} as Request;
 
       await addMovie(req, res as unknown as Response);
 
       expect(mockSave).toHaveBeenCalledTimes(1);
-
       expect(res.json).toHaveBeenCalledWith({
         message: 'Movie added successfully!',
       });
@@ -210,23 +182,17 @@ describe('Movie API Functions', () => {
     it('should return server error on failure', async () => {
       const newMovie = {
         title: 'The Lord of the Rings',
-
         genre: 'Fantasy',
-
         rating: 5,
-
         link: 'link3',
       };
 
       MockMovie.prototype.save = jest
-
         .fn()
-
         .mockRejectedValueOnce(new Error('Internal Server Error'));
 
       const res = {
         json: jest.fn(),
-
         status: jest.fn().mockReturnThis(),
       } as MockResponse;
 
@@ -235,9 +201,7 @@ describe('Movie API Functions', () => {
       await addMovie(req, res as unknown as Response);
 
       expect(MockMovie.prototype.save).toHaveBeenCalledTimes(1);
-
       expect(res.status).toHaveBeenCalledWith(500);
-
       expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
     });
   });
@@ -248,11 +212,8 @@ describe('Movie API Functions', () => {
 
       const updateData = {
         title: 'Updated Title',
-
         genre: 'Updated Genre',
-
         rating: 4,
-
         link: 'updated-link',
       };
 
@@ -262,7 +223,6 @@ describe('Movie API Functions', () => {
 
       const req = {
         params: {id: movieId},
-
         body: updateData,
       } as unknown as Request;
 
@@ -270,7 +230,6 @@ describe('Movie API Functions', () => {
 
       expect(MockMovie.findByIdAndUpdate).toHaveBeenCalledWith(
         movieId,
-
         updateData
       );
 
@@ -290,13 +249,11 @@ describe('Movie API Functions', () => {
 
       const res = {
         json: jest.fn(),
-
         status: jest.fn().mockReturnThis(),
       } as MockResponse;
 
       const req = {
         params: {id: movieId},
-
         body: updateData,
       } as unknown as Request;
 
@@ -304,12 +261,10 @@ describe('Movie API Functions', () => {
 
       expect(MockMovie.findByIdAndUpdate).toHaveBeenCalledWith(
         movieId,
-
         updateData
       );
 
       expect(res.status).toHaveBeenCalledWith(500);
-
       expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
     });
   });
@@ -329,7 +284,6 @@ describe('Movie API Functions', () => {
       await deleteMovie(req, res as unknown as Response);
 
       expect(MockMovie.findByIdAndDelete).toHaveBeenCalledWith(movieId);
-
       expect(res.json).toHaveBeenCalledWith({
         message: 'Movie deleted successfully!',
       });
@@ -344,7 +298,6 @@ describe('Movie API Functions', () => {
 
       const res = {
         json: jest.fn(),
-
         status: jest.fn().mockReturnThis(),
       } as MockResponse;
 
@@ -355,9 +308,7 @@ describe('Movie API Functions', () => {
       await deleteMovie(req, res as unknown as Response);
 
       expect(MockMovie.findByIdAndDelete).toHaveBeenCalledWith(movieId);
-
       expect(res.status).toHaveBeenCalledWith(500);
-
       expect(res.json).toHaveBeenCalledWith({error: 'Server Error'});
     });
   });

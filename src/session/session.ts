@@ -5,9 +5,8 @@ export const setSessionData = (
   res: Response,
   next: NextFunction
 ) => {
-  req.session.userId = '12345'; 
-
-  console.log('Session Data:', req.session); 
+  req.session.userId = '12345';
+  console.log('Session Data:', req.session);
 
   next();
 };
