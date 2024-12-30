@@ -8,6 +8,7 @@ import cors from '@config/cors';
 import { errorHandler } from '@middleware/ErrorMiddileware';
 import userRoutes from '@routes/UserRoutes';
 import moviesRoutes from '@routes/MoviesRoutes';
+import logger from '@config/winston';
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT as string, 10) || 5000;
@@ -25,5 +26,5 @@ app.use('/api/movies', moviesRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () =>
-    console.log(`Server running on http://localhost:${PORT}`)
+    logger.info(`Server running on http://localhost:${PORT}`)
 );

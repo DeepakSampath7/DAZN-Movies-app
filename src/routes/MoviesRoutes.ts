@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '@middleware/AdminMiddleware';
+import { authenticateToken } from '@src/middleware/AuthMiddleware';
 import * as movieController from '@controllers/MoviesController';
 
 const router = express.Router();

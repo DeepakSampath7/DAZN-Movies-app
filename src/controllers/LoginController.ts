@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '@models/UsersSchema';
 import { generateToken, verifyToken } from '@config/jwt';
-import redisClient from '@config/Redis';
+import redisClient from '@config/redis';
+import logger from '@src/config/winston';
 
 export const register = async (
     req: Request,
@@ -20,6 +21,9 @@ export const register = async (
             $or: [{ email }, { username }],
         });
         if (existingUser) {
+            logger.error(
+                `${req.method} API call made to /api/users/register - User already exists`
+            );
             res.status(400).json({ message: 'User already exists' });
             return;
         }
@@ -34,7 +38,7 @@ export const register = async (
         });
 
         await newUser.save();
-
+        logger.info(`${req.method} API call made to /api/users/register`);
         res.status(201).json({
             message: 'User registered successfully',
             user: {
@@ -43,8 +47,9 @@ export const register = async (
                 role: newUser.role,
             },
         });
-    } catch (error) {
-        next(error);
+    } catch (err) {
+        logger.error(err);
+        next(err);
     }
 };
 
@@ -56,6 +61,9 @@ export const login = async (
     const { email, password } = req.body;
 
     if (!email || !password) {
+        logger.error(
+            `${req.method} API call made to /api/users/login - Email and password are required`
+        );
         res.status(400).json({ message: 'Email and password are required' });
         return;
     }
@@ -63,12 +71,18 @@ export const login = async (
     try {
         const user = await User.findOne({ email });
         if (!user) {
+            logger.error(
+                `${req.method} API call made to /api/users/login - Invalid credentials`
+            );
             res.status(401).json({ message: 'Invalid credentials' });
             return;
         }
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+            logger.error(
+                `${req.method} API call made to /api/users/login - Invalid credentials`
+            );
             res.status(401).json({ message: 'Invalid credentials' });
             return;
         }
@@ -78,8 +92,6 @@ export const login = async (
         const redisKey = `user_session_${user._id}`;
 
         await redisClient.set(redisKey, token, { EX: 3600 });
-        const key = await redisClient.get(redisKey);
-        console.log('login redis key', key);
 
         res.cookie('session', token, {
             httpOnly: true,
@@ -88,9 +100,12 @@ export const login = async (
             maxAge: 3600 * 1000,
         });
 
-        res.json({ message: 'Login successful' });
-    } catch (error) {
-        next(error);
+        logger.info(`${req.method} API call made to /api/users/login`);
+
+        res.json({ message: `${user.username} - Login successful` });
+    } catch (err) {
+        logger.error(err);
+        next(err);
     }
 };
 
@@ -102,6 +117,9 @@ export const logout = async (
     const token = req.cookies.session;
 
     if (!token) {
+        logger.error(
+            `${req.method} API call made to /api/users/logout - No session found`
+        );
         res.status(400).json({ message: 'No session found' });
         return;
     }
@@ -111,15 +129,17 @@ export const logout = async (
 
         const redisKey = `user_session_${decoded.userId}`;
         await redisClient.del(redisKey);
+        await redisClient.flushAll();
 
         res.clearCookie('session', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'dev',
             sameSite: 'strict',
         });
-
+        logger.info(`${req.method} API call made to /api/users/logout`);
         res.json({ message: 'Logout successful' });
     } catch (err) {
+        logger.error(err);
         next(err);
     }
 };

@@ -1,16 +1,17 @@
-import redisClient from '@config/Redis';
+import redisClient from '@config/redis';
+import logger from '@src/config/winston';
 
 const listSessions = async () => {
     try {
         const keys = await redisClient.keys('user_session_*');
-        console.log('Active sessions:', keys);
+        logger.info('Active sessions:', keys);
 
         for (const key of keys) {
             const value = await redisClient.get(key);
-            console.log(`Session Key: ${key}, Token: ${value}`);
+            logger.error(`Session Key: ${key}, Token: ${value}`);
         }
     } catch (error) {
-        console.error('Error listing sessions:', error);
+        logger.error('Error listing sessions:', error);
     }
 };
 

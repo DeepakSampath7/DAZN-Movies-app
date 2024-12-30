@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import redisClient from '@config/Redis';
+import redisClient from '@config/redis';
 import { verifyToken } from '@config/jwt';
 import listSessions from '@session/ListSession';
+import logger from '@src/config/winston';
 
 interface CustomRequest extends Request {
     user?: any;
@@ -29,6 +30,7 @@ export const authenticateToken = async (
         listSessions();
 
         if (!redisToken || redisToken !== token) {
+            logger.error('Session expired. Please log in again.');
             res.status(401).json({
                 message: 'Session expired. Please log in again.',
             });
@@ -36,6 +38,7 @@ export const authenticateToken = async (
         }
 
         if (decoded.role !== 'admin') {
+            logger.error('Access denied. Admin role is required.');
             res.status(403).json({
                 message: 'Access denied. Admin role is required.',
             });
@@ -49,7 +52,7 @@ export const authenticateToken = async (
 
         next();
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         res.status(401).json({
             message: 'Invalid token or session error',
         });

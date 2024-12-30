@@ -1,3 +1,4 @@
+import logger from '@src/config/winston';
 import { Request, Response, NextFunction } from 'express';
 
 export const errorHandler = (
@@ -6,6 +7,6 @@ export const errorHandler = (
     res: Response,
     next: NextFunction
 ) => {
-    console.error(err.stack);
+    logger.error(err.stack);
     res.status(500).json({ error: 'Internal Server Error' });
 };

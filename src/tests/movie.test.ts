@@ -1,5 +1,5 @@
 import request from 'supertest';
-import redisClient from '@config/Redis';
+import redisClient from '@config/redis';
 import Movie from '@models/MoviesSchema';
 import express, { Application } from 'express';
 

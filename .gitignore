@@ -12,3 +12,5 @@ Thumbs.db
 
 # dotenv environment variables file
 .env
+
+logs
