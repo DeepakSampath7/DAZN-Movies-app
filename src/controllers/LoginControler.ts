@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '@models/UsersSchema';
-import { generateToken } from '@config/jwt';
+import { generateToken, verifyToken } from '@config/jwt';
+import redisClient from '@config/Redis';
 
 export const register = async (
     req: Request,
@@ -72,14 +73,53 @@ export const login = async (
             return;
         }
 
-        const userIdString = user._id.toString();
-        const token = generateToken(userIdString, user.role);
+        const token = generateToken(user._id, user.role);
 
-        res.json({
-            message: 'Login successful',
-            token,
+        const redisKey = `user_session_${user._id}`;
+
+        await redisClient.set(redisKey, token, { EX: 3600 });
+        const key = await redisClient.get(redisKey);
+        console.log('login redis key', key);
+
+        res.cookie('session', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'dev',
+            sameSite: 'strict',
+            maxAge: 3600 * 1000,
         });
+
+        res.json({ message: 'Login successful' });
     } catch (error) {
         next(error);
+    }
+};
+
+export const logout = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    const token = req.cookies.session;
+
+    if (!token) {
+        res.status(400).json({ message: 'No session found' });
+        return;
+    }
+
+    try {
+        const decoded: any = verifyToken(token);
+
+        const redisKey = `user_session_${decoded.userId}`;
+        await redisClient.del(redisKey);
+
+        res.clearCookie('session', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'dev',
+            sameSite: 'strict',
+        });
+
+        res.json({ message: 'Logout successful' });
+    } catch (err) {
+        next(err);
     }
 };

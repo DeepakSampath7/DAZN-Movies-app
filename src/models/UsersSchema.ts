@@ -43,7 +43,6 @@ const userSchema = new Schema<IUser>(
     }
 );
 
-// Hash the password before saving it
 userSchema.statics.hashPassword = function (password: string): string {
     const salt = bcrypt.genSaltSync(10);
     return bcrypt.hashSync(password, salt);

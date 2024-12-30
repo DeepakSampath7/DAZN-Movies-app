@@ -65,7 +65,7 @@ export const addMovie = async (req: Request, res: Response): Promise<void> => {
 
         const newMovie = new Movie({ title, genre, rating, link });
         await newMovie.save();
-        await redisClient.flushAll();
+        await redisClient.del('movies_all');
         res.json({ message: 'Movie added successfully!' });
         return;
     } catch (err) {
